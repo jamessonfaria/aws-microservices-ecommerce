@@ -1,4 +1,4 @@
-import { DeleteItemCommand, GetItemCommand, PutItemCommand, ScanCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
+import { DeleteItemCommand, GetItemCommand, PutItemCommand, QueryCommand, ScanCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { unmarshall, marshall } from "@aws-sdk/util-dynamodb";
 import { ddbClient } from "./ddbClient";
 import { v4 as uuidv4 } from 'uuid';
@@ -8,7 +8,10 @@ exports.handler = async function(event) {
 
     switch (event.httpMethod) {
       case "GET":
-        if (event.pathParameters != null) {
+        if(event.queryStringParameters != null) {
+          body = await getProductsByCategory(event); // GET product/1234?category=Phone
+        }
+        else if (event.pathParameters != null) {
           body = await getProduct(event.pathParameters.id); // GET product/{id}
         } else {
           body = await getAllProducts(); // GET product
@@ -148,4 +151,31 @@ const updateProduct = async (event) => {
     throw e;
   }
 
+}
+
+const getProductsByCategory = async (event) => {
+  console.log("getProductsByCategory");
+  try {
+    // GET product/1234?category=Phone
+    const productId = event.pathParameters.id;
+    const category = event.queryStringParameters.category;
+
+    const params = {
+      KeyConditionExpression: "id = :productId",
+      FilterExpression: "contains (category, :category)",
+      ExpressionAttributeValues: {
+        ":productId": { S: productId },
+        ":category": { S: category }
+      },      
+      TableName: process.env.DYNAMODB_TABLE_NAME
+    };
+
+    const { Items } = await ddbClient.send(new QueryCommand(params));
+
+    console.log(Items);
+    return Items.map((item) => unmarshall(item));
+  } catch(e) {
+    console.error(e);
+    throw e;
+  }
 }
