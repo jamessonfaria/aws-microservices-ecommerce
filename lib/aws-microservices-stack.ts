@@ -5,37 +5,22 @@ import { NodejsFunction, NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-node
 import { Construct } from 'constructs';
 import { join } from 'path';
 import { SwnDatabase } from './database';
+import { SwnMicroservices } from './microservice';
 
 export class AwsMicroservicesStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     const database = new SwnDatabase(this, 'Database');
-
-    const nodeJsFunctionProps: NodejsFunctionProps = {
-      bundling: {
-        externalModules: [
-          'aws-sdk'
-        ]
-      },
-      environment: {
-        PRIMARY_KEY: 'id',
-        DYNAMODB_TABLE_NAME: database.productTable.tableName
-      },
-      runtime: Runtime.NODEJS_14_X
-    };
-
-    const productFunction = new NodejsFunction(this, 'productLambdaFunction', {
-      entry: join(__dirname, `/../src/product/index.js`),
-      ...nodeJsFunctionProps,
+    
+    const microservices = new SwnMicroservices(this, 'Microservices', {
+      productTable: database.productTable
     });
-
-    database.productTable.grantReadWriteData(productFunction);
 
     // api gateway
     const apigw = new LambdaRestApi(this, 'productApi', {
       restApiName: 'Product Service',
-      handler: productFunction,
+      handler: microservices.productMicroservice,
       proxy: false,
     });
 
