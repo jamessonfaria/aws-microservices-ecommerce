@@ -6,6 +6,8 @@ import { v4 as uuidv4 } from 'uuid';
 exports.handler = async function(event) {
     console.log("request:", JSON.stringify(event, undefined, 2));
 
+    let body;
+
     try{
       switch (event.httpMethod) {
         case "GET":
