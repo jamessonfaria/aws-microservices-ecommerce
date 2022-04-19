@@ -3,7 +3,8 @@ import { IFunction } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 
 interface SwnApiGatewayProps {
-    productMicroservice: IFunction  
+    productMicroservice: IFunction,
+    basketMicroservice: IFunction
 }
 
 export class SwnApiGateway extends Construct {    
@@ -11,10 +12,16 @@ export class SwnApiGateway extends Construct {
     constructor(scope: Construct, id: string, props: SwnApiGatewayProps){
         super(scope, id);
 
-        // api gateway
+        // Product api gateway
+        this.createProductApi(props.productMicroservice);
+        // Basket api gateway
+        this.createBasketApi(props.basketMicroservice);
+    }
+
+    private createProductApi(productMicroservice: IFunction) {
         const apigw = new LambdaRestApi(this, 'productApi', {
             restApiName: 'Product Service',
-            handler: props.productMicroservice,
+            handler: productMicroservice,
             proxy: false,
         });
     
@@ -26,6 +33,26 @@ export class SwnApiGateway extends Construct {
         singleProduct.addMethod('GET'); // GET /product/{id}
         singleProduct.addMethod('PUT'); // PUT /product/{id}
         singleProduct.addMethod('DELETE'); // DELETE /product/{id}
+    }
+
+    private createBasketApi(basketMicroservice: IFunction) {
+        const apigw = new LambdaRestApi(this, 'basketApi', {
+            restApiName: 'Basket Service',
+            handler: basketMicroservice,
+            proxy: false,
+        });
+        
+        const basket = apigw.root.addResource('basket');
+        basket.addMethod('GET');  // GET /basket
+        basket.addMethod('POST');  // POST /basket
+
+        const singleBasket = basket.addResource('{userName}');
+        singleBasket.addMethod('GET');  // GET /basket/{userName}
+        singleBasket.addMethod('DELETE'); // DELETE /basket/{userName}
+
+        const basketCheckout = basket.addResource('checkout');
+        basketCheckout.addMethod('POST'); // POST /basket/checkout
+            // expected request payload : { userName : swn }
 
     }
 }
