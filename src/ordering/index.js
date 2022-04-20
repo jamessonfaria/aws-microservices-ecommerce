@@ -2,7 +2,7 @@ import { QueryCommand, PutItemCommand, ScanCommand } from "@aws-sdk/client-dynam
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { ddbClient } from './ddbClient';
 
-exports.handler = async function(event) {
+exports.handler = async function (event) {
   console.log("request:", JSON.stringify(event, undefined, 2));
 
   // TODO - Catch and Process Async EventBridge Invocation and Sync API Gateway Invocation     
@@ -32,7 +32,7 @@ const createOrder = async (basketCheckoutEvent) => {
     const orderDate = new Date().toISOString();
     basketCheckoutEvent.orderDate = orderDate;
     console.log(basketCheckoutEvent);
-    
+
     const params = {
       TableName: process.env.DYNAMODB_TABLE_NAME,
       Item: marshall(basketCheckoutEvent || {})
@@ -42,7 +42,7 @@ const createOrder = async (basketCheckoutEvent) => {
     console.log(createResult);
     return createResult;
 
-  } catch(e) {
+  } catch (e) {
     console.error(e);
     throw e;
   }
@@ -75,7 +75,7 @@ const apiGatewayInvocation = async (event) => {
       })
     };
   }
-  catch(e) {
+  catch (e) {
     console.error(e);
     return {
       statusCode: 500,
@@ -85,16 +85,16 @@ const apiGatewayInvocation = async (event) => {
         errorStack: e.stack,
       })
     };
-  } 
+  }
 }
-  
+
 const getOrder = async (event) => {
   console.log("getOrder");
-    
+
   try {
     // expected request : xxx/order/swn?orderDate=timestamp
-    const userName = event.pathParameters.userName;  
-    const orderDate = event.queryStringParameters.orderDate; 
+    const userName = event.pathParameters.userName;
+    const orderDate = event.queryStringParameters.orderDate;
 
     const params = {
       KeyConditionExpression: "userName = :userName and orderDate = :orderDate",
@@ -104,22 +104,22 @@ const getOrder = async (event) => {
       },
       TableName: process.env.DYNAMODB_TABLE_NAME
     };
- 
+
     const { Items } = await ddbClient.send(new QueryCommand(params));
 
     console.log(Items);
     return Items.map((item) => unmarshall(item));
-  } catch(e) {
+  } catch (e) {
     console.error(e);
     throw e;
   }
 }
 
-const getAllOrders = async () => {  
-  console.log("getAllOrders");    
+const getAllOrders = async () => {
+  console.log("getAllOrders");
   try {
     const params = {
-    TableName: process.env.DYNAMODB_TABLE_NAME
+      TableName: process.env.DYNAMODB_TABLE_NAME
     };
 
     const { Items } = await ddbClient.send(new ScanCommand(params));
@@ -127,7 +127,7 @@ const getAllOrders = async () => {
     console.log(Items);
     return (Items) ? Items.map((item) => unmarshall(item)) : {};
 
-  } catch(e) {
+  } catch (e) {
     console.error(e);
     throw e;
   }
